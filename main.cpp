@@ -9,26 +9,7 @@ struct State
 {
     map<char, int> transitions; // Problem when States have multiple transitions on same input ex. a->State1, a->state 2 while in State0
     bool isFinal = false;
-
-    void getData() const
-    {
-        cout << "isFinal: " << boolalpha << isFinal << endl;
-        for (auto &t : transitions)
-        {
-            cout << "\b  '" << t.first << "' -> " << t.second << endl;
-        }
-    }
 };
-
-void print(vector<State> states)
-{
-    for (State i : states)
-    {
-        cout << "<";
-        i.getData();
-        cout << "\b>";
-    }
-}
 
 vector<State> regexToNFA(string regex)
 {
@@ -38,29 +19,34 @@ vector<State> regexToNFA(string regex)
     int curr = 0;
     for (int i = 0; i < regex.length(); i++)
     {
-        State current = States[curr];
         char symbol = regex[i];
+        if(symbol == '+'){
+            States[curr].isFinal = true;
+            curr = 0;
+            continue;
+        }
 
-        if (i + 1 < regex.length() && regex[i + 1] == '*')
+        States.push_back(State());
+        if (curr == 0)
         {
-            int temp = curr;
+            States[curr].transitions.insert({'$', curr + 1});
             States.push_back(State());
-            States[curr].transitions.insert({'$', ++temp});
-            States[temp].transitions.insert({symbol, temp});
-
-            i++;
             curr++;
         }
-        else
-        {
-            print(States);
-            States.push_back(State());
-            States[curr].transitions.insert({symbol, curr + 1});
-            curr++;
-        }
+        // else if(symbol == '*'){
+        //     curr--;
+        //     States[curr].transitions.insert({'$', curr-1}); need to change struct State to handle multiple transitions
+        //     curr++;
+        // }
+
+        States[curr].transitions.insert({symbol, curr+1});
+        curr++;
 
         if (i == regex.length() - 1)
         {
+            States.push_back(State());
+            States[curr].transitions.insert({'$', curr+1});
+            curr++;
             States[curr].isFinal = true;
         }
     }
@@ -68,45 +54,57 @@ vector<State> regexToNFA(string regex)
     return States;
 }
 
-void Test(const vector<State> &states, const string &input) //CHATGPT CODE FOR TESTING
-{
-    int current = 0;
 
-    for (char symbol : input)
+void epsilonClosure(const vector<State> &states, set<int> &currStates)
+{ // chatgpt code
+    bool changed;
+    do
     {
-        if (states[current].transitions.count(symbol))
+        changed = false;
+        set<int> newStates = currStates;
+        for (int s : currStates)
         {
-            current = states[current].transitions.at(symbol);
-        }
-        else if (states[current].transitions.count('$'))
-        {
-            current = states[current].transitions.at('$');
-            // Retry current symbol after epsilon
-            if (states[current].transitions.count(symbol))
+            auto it = states[s].transitions.find('$');
+            if (it != states[s].transitions.end())
             {
-                current = states[current].transitions.at(symbol);
-            }
-            else
-            {
-                cout << "Rejected: no transition for '" << symbol << "'\n";
-                return;
+                int next = it->second;
+                if (!currStates.count(next))
+                {
+                    newStates.insert(next);
+                    changed = true;
+                }
             }
         }
-        else
+        currStates = newStates;
+    } while (changed);
+}
+
+bool testString(const vector<State> &states, const string &input)
+{ // chatgpt code
+    set<int> currStates = {0};
+    epsilonClosure(states, currStates);
+
+    for (char c : input)
+    {
+        set<int> nextStates;
+        for (int s : currStates)
         {
-            cout << "Rejected: no transition for '" << symbol << "'\n";
-            return;
+            auto it = states[s].transitions.find(c);
+            if (it != states[s].transitions.end())
+            {
+                nextStates.insert(it->second);
+            }
         }
+        currStates = nextStates;
+        epsilonClosure(states, currStates);
     }
 
-    if (states[current].isFinal)
+    for (int s : currStates)
     {
-        cout << "Accepted\n";
+        if (states[s].isFinal)
+            return true;
     }
-    else
-    {
-        cout << "Rejected: reached non-final state\n";
-    }
+    return false;
 }
 
 int main()
@@ -114,7 +112,7 @@ int main()
     string DNA = "AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT"; // test sample
     string RegularExpression;
 
-    cout << "Enter a RegEx: ";
+    cout << "Enter a RegEx (no spaces): ";
     cin >> RegularExpression;
 
     vector<State> compiled = regexToNFA(RegularExpression);
@@ -123,15 +121,15 @@ int main()
 
     cout << "Enter String for testing: ";
     cin >> inputs;
-    Test(compiled, inputs);
-    // if (Test(compiled, inputs))
-    // {
-    //     cout << "input string is accepted";
-    // }
-    // else
-    // {
-    //     cout << "input string is rejected";
-    // }
+    // testString(compiled, inputs);
+    if (testString(compiled, inputs))
+    {
+        cout << "input string is accepted";
+    }
+    else
+    {
+        cout << "input string is rejected";
+    }
 
     return 0;
 }
