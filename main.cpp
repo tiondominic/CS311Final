@@ -7,20 +7,23 @@ using namespace std;
 
 struct State
 {
-    map<char, int> transitions; // Problem when States have multiple transitions on same input ex. a->State1, a->state 2 while in State0
+    multimap<char, int> transitions; // Problem when States have multiple transitions on same input ex. a->State1, a->state 2 while in State0
     bool isFinal = false;
 };
+
 
 vector<State> regexToNFA(string regex)
 {
     vector<State> States;
 
     States.push_back(State());
-    int curr = 0;
     for (int i = 0; i < regex.length(); i++)
     {
         char symbol = regex[i];
-        if(symbol == '+'){
+        int curr = 0;
+
+        if (symbol == '+')
+        {
             States[curr].isFinal = true;
             curr = 0;
             continue;
@@ -29,23 +32,27 @@ vector<State> regexToNFA(string regex)
         States.push_back(State());
         if (curr == 0)
         {
-            States[curr].transitions.insert({'$', curr + 1});
+            States[curr].transitions.insert({'$', curr+1});
             States.push_back(State());
             curr++;
         }
-        // else if(symbol == '*'){
-        //     curr--;
-        //     States[curr].transitions.insert({'$', curr-1}); need to change struct State to handle multiple transitions
-        //     curr++;
-        // }
-
-        States[curr].transitions.insert({symbol, curr+1});
-        curr++;
+        if (symbol == '*')
+        {
+            States[curr].transitions.insert({'$', curr - 1});
+            curr--;
+            States[curr].transitions.insert({'$', curr + 1});
+            curr++;
+        }
+        else
+        {
+            States[curr].transitions.insert({symbol, States.size()-1});
+            curr++;
+        }
 
         if (i == regex.length() - 1)
         {
             States.push_back(State());
-            States[curr].transitions.insert({'$', curr+1});
+            States[curr].transitions.insert({'$', States.size()-1});
             curr++;
             States[curr].isFinal = true;
         }
@@ -54,54 +61,67 @@ vector<State> regexToNFA(string regex)
     return States;
 }
 
-
-void epsilonClosure(const vector<State> &states, set<int> &currStates)
-{ // chatgpt code
-    bool changed;
-    do
+void printNFA(const vector<State> &nfa)
+{
+    cout << "\n=== NFA States ===\n";
+    for (int i = 0; i < nfa.size(); ++i)
     {
-        changed = false;
-        set<int> newStates = currStates;
-        for (int s : currStates)
+        cout << "State " << i;
+        if (nfa[i].isFinal)
+            cout << " (final)";
+        cout << ":\n";
+
+        for (auto &t : nfa[i].transitions)
         {
-            auto it = states[s].transitions.find('$');
-            if (it != states[s].transitions.end())
-            {
-                int next = it->second;
-                if (!currStates.count(next))
-                {
-                    newStates.insert(next);
-                    changed = true;
-                }
-            }
+            cout << "  --" << t.first << "--> " << t.second << "\n";
         }
-        currStates = newStates;
-    } while (changed);
+        cout << endl;
+    }
 }
 
-bool testString(const vector<State> &states, const string &input)
-{ // chatgpt code
-    set<int> currStates = {0};
-    epsilonClosure(states, currStates);
+void epsilonClosure(const vector<State> &nfa, set<int> &states) // chatgpt code
+{
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+        set<int> newStates = states;
+        for (int s : states)
+        {
+            auto range = nfa[s].transitions.equal_range('$');
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                if (newStates.insert(it->second).second)
+                    changed = true;
+            }
+        }
+        states = newStates;
+    }
+}
+
+bool simulateNFA(const vector<State> &nfa, const string &input) // chatgpt code
+{
+    set<int> currentStates = {0};
+    epsilonClosure(nfa, currentStates);
 
     for (char c : input)
     {
         set<int> nextStates;
-        for (int s : currStates)
+        for (int s : currentStates)
         {
-            auto it = states[s].transitions.find(c);
-            if (it != states[s].transitions.end())
+            auto range = nfa[s].transitions.equal_range(c);
+            for (auto it = range.first; it != range.second; ++it)
             {
                 nextStates.insert(it->second);
             }
         }
-        currStates = nextStates;
-        epsilonClosure(states, currStates);
+        currentStates = nextStates;
+        epsilonClosure(nfa, currentStates);
     }
 
-    for (int s : currStates)
+    for (int s : currentStates)
     {
-        if (states[s].isFinal)
+        if (nfa[s].isFinal)
             return true;
     }
     return false;
@@ -116,13 +136,15 @@ int main()
     cin >> RegularExpression;
 
     vector<State> compiled = regexToNFA(RegularExpression);
+    printNFA(compiled);
+    // cout << compiled.size();
 
     string inputs;
 
     cout << "Enter String for testing: ";
     cin >> inputs;
     // testString(compiled, inputs);
-    if (testString(compiled, inputs))
+    if (simulateNFA(compiled, inputs))
     {
         cout << "input string is accepted";
     }
