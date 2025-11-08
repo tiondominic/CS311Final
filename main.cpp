@@ -23,14 +23,13 @@ class NFA
 public:
     vector<State> States;
     stack<indexes> index;
-    vector<State> createNFA(string regex)
+    void createNFA(string regex)
     {
-
         for (int j = 0; j < regex.length(); j++)
         {
             char i = regex[j];
-            bool comparison = (i != '+' && i != '(' && i != ')');
-            if (comparison)
+            bool comparison = (i != '+' && i != '(' && i != ')' && i != '*');
+            if (comparison) // concatenation
             {
                 int start = States.size();
                 int end = start + 1;
@@ -51,14 +50,28 @@ public:
                 }
                 index.push(newi);
             }
+            if (i == '+')
+            {
+                if (i < regex.length())
+                {
+                    indexes left = index.top();
+                    index.pop();
+                    createNFA(regex.substr(i + 1, regex.length()));
+                };
+                
+            }
         }
         if (!index.empty())
         {
             int finalIndex = index.top().end;
             States[finalIndex].isFinal = true;
         }
-        return States;
     };
+
+    vector<State> getnfa()
+    {
+        return States;
+    }
 
     void epsilonClosure(const vector<State> &NFA, set<int> &states)
     {
@@ -128,7 +141,8 @@ int main()
     cout << "Enter RegEx (No Spaces): ";
     cin >> input;
 
-    vector<State> nfa = newNFA.createNFA(input);
+    newNFA.createNFA(input);
+    auto nfa = newNFA.getnfa();
     string w;
     cout << "Enter String to validate: ";
     cin >> w;
