@@ -1,135 +1,272 @@
 #include <iostream>
-#include <string>
-#include <map>
 #include <vector>
+#include <map>
 #include <set>
+#include <stack>
+#include <string>
 using namespace std;
 
 struct State
 {
-    map<char, int> transitions; // Problem when States have multiple transitions on same input ex. a->State1, a->state 2 while in State0
+    map<char, vector<int>> transitions;
     bool isFinal = false;
 };
 
-vector<State> regexToNFA(string regex)
+struct indexes
 {
+    int start;
+    int end;
+};
+
+class NFA
+{
+public:
     vector<State> States;
+    stack<indexes> index;
 
-    States.push_back(State());
-    int curr = 0;
-    for (int i = 0; i < regex.length(); i++)
+    void regexToNFA(string regex)
     {
-        char symbol = regex[i];
-        if(symbol == '+'){
-            States[curr].isFinal = true;
-            curr = 0;
-            continue;
+        regex = insertConcat(regex);
+        stack<char> ops;
+
+        for (int i = 0; i < regex.length(); i++)
+        {
+            char c = regex[i];
+
+            if (isalnum(c))
+            {
+                int start = States.size();
+                int end = start + 1;
+                States.push_back(State());
+                States.push_back(State());
+                States[start].transitions[c].push_back(end);
+                index.push({start, end});
+            }
+            else if (c == '(')
+                ops.push(c);
+            else if (c == ')')
+            {
+                while (!ops.empty() && ops.top() != '(')
+                {
+                    processOperator(ops.top());
+                    ops.pop();
+                }
+                if (!ops.empty())
+                    ops.pop();
+            }
+            else
+            {
+                while (!ops.empty() && precedence(ops.top()) >= precedence(c))
+                {
+                    processOperator(ops.top());
+                    ops.pop();
+                }
+                ops.push(c);
+            }
         }
 
-        States.push_back(State());
-        if (curr == 0)
+        while (!ops.empty())
         {
-            States[curr].transitions.insert({'$', curr + 1});
-            States.push_back(State());
-            curr++;
+            processOperator(ops.top());
+            ops.pop();
         }
-        // else if(symbol == '*'){
-        //     curr--;
-        //     States[curr].transitions.insert({'$', curr-1}); need to change struct State to handle multiple transitions
-        //     curr++;
-        // }
 
-        States[curr].transitions.insert({symbol, curr+1});
-        curr++;
-
-        if (i == regex.length() - 1)
+        if (!index.empty())
         {
-            States.push_back(State());
-            States[curr].transitions.insert({'$', curr+1});
-            curr++;
-            States[curr].isFinal = true;
+            States[index.top().end].isFinal = true;
         }
     }
 
-    return States;
-}
+    vector<State> getnfa() { return States; }
 
-
-void epsilonClosure(const vector<State> &states, set<int> &currStates)
-{ // chatgpt code
-    bool changed;
-    do
+private:
+    int precedence(char c)
     {
-        changed = false;
-        set<int> newStates = currStates;
-        for (int s : currStates)
+        if (c == '*')
+            return 3;
+        if (c == '.')
+            return 2;
+        if (c == '+')
+            return 1;
+        return 0;
+    }
+
+    string insertConcat(const string &regex)
+    {
+        string output;
+        for (int i = 0; i < regex.size(); i++)
         {
-            auto it = states[s].transitions.find('$');
-            if (it != states[s].transitions.end())
+            char c1 = regex[i];
+            output += c1;
+            if (i + 1 < regex.size())
             {
-                int next = it->second;
-                if (!currStates.count(next))
+                char c2 = regex[i + 1];
+                if ((isalnum(c1) || c1 == '*' || c1 == ')') &&
+                    (isalnum(c2) || c2 == '('))
                 {
-                    newStates.insert(next);
-                    changed = true;
+                    output += '.';
                 }
             }
         }
-        currStates = newStates;
-    } while (changed);
+        return output;
+    }
+
+    void processOperator(char op)
+    {
+        if (op == '*')
+        { // Kleene star
+            indexes f = index.top();
+            index.pop();
+            int start = States.size();
+            int end = start + 1;
+            States.push_back(State());
+            States.push_back(State());
+            States[start].transitions['$'].push_back(f.start);
+            States[start].transitions['$'].push_back(end);
+            States[f.end].transitions['$'].push_back(f.start);
+            States[f.end].transitions['$'].push_back(end);
+            index.push({start, end});
+        }
+        else if (op == '.')
+        { // concatenation
+            indexes f2 = index.top();
+            index.pop();
+            indexes f1 = index.top();
+            index.pop();
+            States[f1.end].transitions['$'].push_back(f2.start);
+            index.push({f1.start, f2.end});
+        }
+        else if (op == '+')
+        {
+            indexes f2 = index.top();
+            index.pop();
+            indexes f1 = index.top();
+            index.pop();
+            int start = States.size();
+            int end = start + 1;
+            States.push_back(State());
+            States.push_back(State());
+            States[start].transitions['$'].push_back(f1.start);
+            States[start].transitions['$'].push_back(f2.start);
+            States[f1.end].transitions['$'].push_back(end);
+            States[f2.end].transitions['$'].push_back(end);
+            index.push({start, end});
+        }
+    }
+};
+
+void epsilonClosure(const vector<State> &nfa, set<int> &states)
+{
+    stack<int> s;
+    for (int st : states)
+        s.push(st);
+
+    while (!s.empty())
+    {
+        int st = s.top();
+        s.pop();
+
+        auto it = nfa[st].transitions.find('$');
+        if (it != nfa[st].transitions.end())
+        {
+            for (int next : it->second)
+            {
+                if (!states.count(next))
+                {
+                    states.insert(next);
+                    s.push(next);
+                }
+            }
+        }
+    }
 }
 
-bool testString(const vector<State> &states, const string &input)
-{ // chatgpt code
-    set<int> currStates = {0};
-    epsilonClosure(states, currStates);
+bool testNFA(const vector<State> &nfa, const string &input)
+{
+    set<int> currentStates;
+    currentStates.insert(0);
+    epsilonClosure(nfa, currentStates);
 
     for (char c : input)
     {
         set<int> nextStates;
-        for (int s : currStates)
+
+        for (int state : currentStates)
         {
-            auto it = states[s].transitions.find(c);
-            if (it != states[s].transitions.end())
+            auto it = nfa[state].transitions.find(c);
+            if (it != nfa[state].transitions.end())
             {
-                nextStates.insert(it->second);
+                for (int next : it->second)
+                    nextStates.insert(next);
             }
         }
-        currStates = nextStates;
-        epsilonClosure(states, currStates);
+
+        currentStates = nextStates;
+        epsilonClosure(nfa, currentStates);
     }
 
-    for (int s : currStates)
+    for (int state : currentStates)
     {
-        if (states[s].isFinal)
+        if (nfa[state].isFinal)
             return true;
     }
     return false;
 }
 
+void function1()
+{
+    NFA newnfa = NFA();
+    string w;
+    string regex;
+
+    cout << "Enter Regex: ";
+    cin >> regex;
+
+    newnfa.regexToNFA(regex);
+    vector<State> NFA = newnfa.getnfa();
+
+    cout << "Enter string to test: ";
+    cin >> w;
+
+    bool accepted = testNFA(NFA, w);
+    cout << (accepted ? "Acceted" : "Rejected") << endl;
+}
+
+void instructions(){
+    cout << "Enter a Regex of form (a+b)*" << endl;
+    cout << "Spaces are not allowed!" << endl;
+}
+
 int main()
 {
-    string DNA = "AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT"; // test sample
-    string RegularExpression;
 
-    cout << "Enter a RegEx (no spaces): ";
-    cin >> RegularExpression;
+    bool loop = true;
+    int decision;
 
-    vector<State> compiled = regexToNFA(RegularExpression);
-
-    string inputs;
-
-    cout << "Enter String for testing: ";
-    cin >> inputs;
-    // testString(compiled, inputs);
-    if (testString(compiled, inputs))
+    cout <<"1. Instructions\n2. Enter Regex\n3. Exit" << endl;
+    do
     {
-        cout << "input string is accepted";
+        cout << ">> ";
+        cin >> decision;
+        switch (decision)
+        {case 1:
+            instructions();
+            break;
+        case 2:
+            function1();
+            break;
+        case 3:
+            loop = false;
+            break;
+        default:
+            cout << "Invalid";
+            break;
     }
-    else
-    {
-        cout << "input string is rejected";
-    }
+
+
+
+    } while (loop);
+
 
     return 0;
 }
