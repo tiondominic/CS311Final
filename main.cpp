@@ -1,14 +1,14 @@
 #include <iostream>
-#include <string>
-#include <map>
 #include <vector>
+#include <map>
 #include <set>
 #include <stack>
+#include <string>
 using namespace std;
 
 struct State
 {
-    multimap<char, int> transitions;
+    map<char, vector<int>> transitions;
     bool isFinal = false;
 };
 
@@ -23,131 +23,250 @@ class NFA
 public:
     vector<State> States;
     stack<indexes> index;
-    void createNFA(string regex)
+
+    void regexToNFA(string regex)
     {
-        for (int j = 0; j < regex.length(); j++)
+        regex = insertConcat(regex);
+        stack<char> ops;
+
+        for (int i = 0; i < regex.length(); i++)
         {
-            char i = regex[j];
-            bool comparison = (i != '+' && i != '(' && i != ')' && i != '*');
-            if (comparison) // concatenation
+            char c = regex[i];
+
+            if (isalnum(c))
             {
                 int start = States.size();
                 int end = start + 1;
-
                 States.push_back(State());
                 States.push_back(State());
-
-                States[start].transitions.insert({i, end});
-
-                indexes newi{start, end};
-                if (!index.empty())
-                {
-                    indexes prev = index.top();
-                    index.pop();
-                    States[prev.end].transitions.insert({'$', newi.start});
-
-                    newi.start = prev.start;
-                }
-                index.push(newi);
+                States[start].transitions[c].push_back(end);
+                index.push({start, end});
             }
-            if (i == '+')
+            else if (c == '(')
+                ops.push(c);
+            else if (c == ')')
             {
-                if (i < regex.length())
+                while (!ops.empty() && ops.top() != '(')
                 {
-                    indexes left = index.top();
-                    index.pop();
-                    createNFA(regex.substr(i + 1, regex.length()));
-                };
-                
+                    processOperator(ops.top());
+                    ops.pop();
+                }
+                if (!ops.empty())
+                    ops.pop();
+            }
+            else
+            {
+                while (!ops.empty() && precedence(ops.top()) >= precedence(c))
+                {
+                    processOperator(ops.top());
+                    ops.pop();
+                }
+                ops.push(c);
             }
         }
+
+        while (!ops.empty())
+        {
+            processOperator(ops.top());
+            ops.pop();
+        }
+
         if (!index.empty())
         {
-            int finalIndex = index.top().end;
-            States[finalIndex].isFinal = true;
-        }
-    };
-
-    vector<State> getnfa()
-    {
-        return States;
-    }
-
-    void epsilonClosure(const vector<State> &NFA, set<int> &states)
-    {
-        bool changed = true;
-        while (changed)
-        {
-            changed = false;
-            set<int> newStates = states;
-
-            for (int s : states)
-            {
-                auto range = NFA[s].transitions.equal_range('$');
-                for (auto it = range.first; it != range.second; ++it)
-                {
-                    int next = it->second;
-                    if (newStates.insert(next).second)
-                    {
-                        changed = true;
-                    }
-                }
-            }
-
-            states = newStates;
+            States[index.top().end].isFinal = true;
         }
     }
 
-    bool CheckIfValid(vector<State> NFA, string w)
+    vector<State> getnfa() { return States; }
+
+private:
+    int precedence(char c)
     {
-        set<int> currentStates;
-        currentStates.insert(0);
+        if (c == '*')
+            return 3;
+        if (c == '.')
+            return 2;
+        if (c == '+')
+            return 1;
+        return 0;
+    }
 
-        epsilonClosure(NFA, currentStates);
-
-        for (char symbol : w)
+    string insertConcat(const string &regex)
+    {
+        string output;
+        for (int i = 0; i < regex.size(); i++)
         {
-            set<int> nextStates;
-
-            for (int s : currentStates)
+            char c1 = regex[i];
+            output += c1;
+            if (i + 1 < regex.size())
             {
-                auto range = NFA[s].transitions.equal_range(symbol);
-
-                for (auto it = range.first; it != range.second; ++it)
+                char c2 = regex[i + 1];
+                if ((isalnum(c1) || c1 == '*' || c1 == ')') &&
+                    (isalnum(c2) || c2 == '('))
                 {
-                    int go = it->second;
-                    nextStates.insert(go);
+                    output += '.';
                 }
             }
-
-            currentStates = nextStates;
-            epsilonClosure(NFA, currentStates);
         }
+        return output;
+    }
 
-        for (int s : currentStates)
+    void processOperator(char op)
+    {
+        if (op == '*')
+        { // Kleene star
+            indexes f = index.top();
+            index.pop();
+            int start = States.size();
+            int end = start + 1;
+            States.push_back(State());
+            States.push_back(State());
+            States[start].transitions['$'].push_back(f.start);
+            States[start].transitions['$'].push_back(end);
+            States[f.end].transitions['$'].push_back(f.start);
+            States[f.end].transitions['$'].push_back(end);
+            index.push({start, end});
+        }
+        else if (op == '.')
+        { // concatenation
+            indexes f2 = index.top();
+            index.pop();
+            indexes f1 = index.top();
+            index.pop();
+            States[f1.end].transitions['$'].push_back(f2.start);
+            index.push({f1.start, f2.end});
+        }
+        else if (op == '+')
         {
-            if (NFA[s].isFinal)
-                return true;
+            indexes f2 = index.top();
+            index.pop();
+            indexes f1 = index.top();
+            index.pop();
+            int start = States.size();
+            int end = start + 1;
+            States.push_back(State());
+            States.push_back(State());
+            States[start].transitions['$'].push_back(f1.start);
+            States[start].transitions['$'].push_back(f2.start);
+            States[f1.end].transitions['$'].push_back(end);
+            States[f2.end].transitions['$'].push_back(end);
+            index.push({start, end});
         }
-
-        return false;
     }
 };
 
+void epsilonClosure(const vector<State> &nfa, set<int> &states)
+{
+    stack<int> s;
+    for (int st : states)
+        s.push(st);
+
+    while (!s.empty())
+    {
+        int st = s.top();
+        s.pop();
+
+        auto it = nfa[st].transitions.find('$');
+        if (it != nfa[st].transitions.end())
+        {
+            for (int next : it->second)
+            {
+                if (!states.count(next))
+                {
+                    states.insert(next);
+                    s.push(next);
+                }
+            }
+        }
+    }
+}
+
+bool testNFA(const vector<State> &nfa, const string &input)
+{
+    set<int> currentStates;
+    currentStates.insert(0);
+    epsilonClosure(nfa, currentStates);
+
+    for (char c : input)
+    {
+        set<int> nextStates;
+
+        for (int state : currentStates)
+        {
+            auto it = nfa[state].transitions.find(c);
+            if (it != nfa[state].transitions.end())
+            {
+                for (int next : it->second)
+                    nextStates.insert(next);
+            }
+        }
+
+        currentStates = nextStates;
+        epsilonClosure(nfa, currentStates);
+    }
+
+    for (int state : currentStates)
+    {
+        if (nfa[state].isFinal)
+            return true;
+    }
+    return false;
+}
+
+void function1()
+{
+    NFA newnfa = NFA();
+    string w;
+    string regex;
+
+    cout << "Enter Regex: ";
+    cin >> regex;
+
+    newnfa.regexToNFA(regex);
+    vector<State> NFA = newnfa.getnfa();
+
+    cout << "Enter string to test: ";
+    cin >> w;
+
+    bool accepted = testNFA(NFA, w);
+    cout << (accepted ? "Acceted" : "Rejected") << endl;
+}
+
+void instructions(){
+    cout << "Enter a Regex of form (a+b)*" << endl;
+    cout << "Spaces are not allowed!" << endl;
+}
+
 int main()
 {
-    NFA newNFA = NFA();
-    string input;
-    cout << "Enter RegEx (No Spaces): ";
-    cin >> input;
 
-    newNFA.createNFA(input);
-    auto nfa = newNFA.getnfa();
-    string w;
-    cout << "Enter String to validate: ";
-    cin >> w;
-    bool accepts = newNFA.CheckIfValid(nfa, w);
-    cout << (accepts ? "Accepted" : "Rejected");
+    bool loop = true;
+    int decision;
+
+    cout <<"1. Instructions\n2. Enter Regex\n3. Exit" << endl;
+    do
+    {
+        cout << ">> ";
+        cin >> decision;
+        switch (decision)
+        {case 1:
+            instructions();
+            break;
+        case 2:
+            function1();
+            break;
+        case 3:
+            loop = false;
+            break;
+        default:
+            cout << "Invalid";
+            break;
+    }
+
+
+
+    } while (loop);
+
 
     return 0;
 }
