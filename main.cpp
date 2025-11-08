@@ -3,155 +3,137 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <stack>
 using namespace std;
 
 struct State
 {
-    multimap<char, int> transitions; // Problem when States have multiple transitions on same input ex. a->State1, a->state 2 while in State0
+    multimap<char, int> transitions;
     bool isFinal = false;
 };
 
-
-vector<State> regexToNFA(string regex)
+struct indexes
 {
+    int start;
+    int end;
+};
+
+class NFA
+{
+public:
     vector<State> States;
-
-    States.push_back(State());
-    for (int i = 0; i < regex.length(); i++)
+    stack<indexes> index;
+    vector<State> createNFA(string regex)
     {
-        char symbol = regex[i];
-        int curr = 0;
 
-        if (symbol == '+')
+        for (int j = 0; j < regex.length(); j++)
         {
-            States[curr].isFinal = true;
-            curr = 0;
-            continue;
-        }
-
-        States.push_back(State());
-        if (curr == 0)
-        {
-            States[curr].transitions.insert({'$', curr+1});
-            States.push_back(State());
-            curr++;
-        }
-        if (symbol == '*')
-        {
-            States[curr].transitions.insert({'$', curr - 1});
-            curr--;
-            States[curr].transitions.insert({'$', curr + 1});
-            curr++;
-        }
-        else
-        {
-            States[curr].transitions.insert({symbol, States.size()-1});
-            curr++;
-        }
-
-        if (i == regex.length() - 1)
-        {
-            States.push_back(State());
-            States[curr].transitions.insert({'$', States.size()-1});
-            curr++;
-            States[curr].isFinal = true;
-        }
-    }
-
-    return States;
-}
-
-void printNFA(const vector<State> &nfa)
-{
-    cout << "\n=== NFA States ===\n";
-    for (int i = 0; i < nfa.size(); ++i)
-    {
-        cout << "State " << i;
-        if (nfa[i].isFinal)
-            cout << " (final)";
-        cout << ":\n";
-
-        for (auto &t : nfa[i].transitions)
-        {
-            cout << "  --" << t.first << "--> " << t.second << "\n";
-        }
-        cout << endl;
-    }
-}
-
-void epsilonClosure(const vector<State> &nfa, set<int> &states) // chatgpt code
-{
-    bool changed = true;
-    while (changed)
-    {
-        changed = false;
-        set<int> newStates = states;
-        for (int s : states)
-        {
-            auto range = nfa[s].transitions.equal_range('$');
-            for (auto it = range.first; it != range.second; ++it)
+            char i = regex[j];
+            bool comparison = (i != '+' && i != '(' && i != ')');
+            if (comparison)
             {
-                if (newStates.insert(it->second).second)
-                    changed = true;
+                int start = States.size();
+                int end = start + 1;
+
+                States.push_back(State());
+                States.push_back(State());
+
+                States[start].transitions.insert({i, end});
+
+                indexes newi{start, end};
+                if (!index.empty())
+                {
+                    indexes prev = index.top();
+                    index.pop();
+                    States[prev.end].transitions.insert({'$', newi.start});
+
+                    newi.start = prev.start;
+                }
+                index.push(newi);
             }
         }
-        states = newStates;
-    }
-}
+        if (!index.empty())
+        {
+            int finalIndex = index.top().end;
+            States[finalIndex].isFinal = true;
+        }
+        return States;
+    };
 
-bool simulateNFA(const vector<State> &nfa, const string &input) // chatgpt code
-{
-    set<int> currentStates = {0};
-    epsilonClosure(nfa, currentStates);
-
-    for (char c : input)
+    void epsilonClosure(const vector<State> &NFA, set<int> &states)
     {
-        set<int> nextStates;
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            set<int> newStates = states;
+
+            for (int s : states)
+            {
+                auto range = NFA[s].transitions.equal_range('$');
+                for (auto it = range.first; it != range.second; ++it)
+                {
+                    int next = it->second;
+                    if (newStates.insert(next).second)
+                    {
+                        changed = true;
+                    }
+                }
+            }
+
+            states = newStates;
+        }
+    }
+
+    bool CheckIfValid(vector<State> NFA, string w)
+    {
+        set<int> currentStates;
+        currentStates.insert(0);
+
+        epsilonClosure(NFA, currentStates);
+
+        for (char symbol : w)
+        {
+            set<int> nextStates;
+
+            for (int s : currentStates)
+            {
+                auto range = NFA[s].transitions.equal_range(symbol);
+
+                for (auto it = range.first; it != range.second; ++it)
+                {
+                    int go = it->second;
+                    nextStates.insert(go);
+                }
+            }
+
+            currentStates = nextStates;
+            epsilonClosure(NFA, currentStates);
+        }
+
         for (int s : currentStates)
         {
-            auto range = nfa[s].transitions.equal_range(c);
-            for (auto it = range.first; it != range.second; ++it)
-            {
-                nextStates.insert(it->second);
-            }
+            if (NFA[s].isFinal)
+                return true;
         }
-        currentStates = nextStates;
-        epsilonClosure(nfa, currentStates);
-    }
 
-    for (int s : currentStates)
-    {
-        if (nfa[s].isFinal)
-            return true;
+        return false;
     }
-    return false;
-}
+};
 
 int main()
 {
-    string DNA = "AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT"; // test sample
-    string RegularExpression;
+    NFA newNFA = NFA();
+    string input;
+    cout << "Enter RegEx (No Spaces): ";
+    cin >> input;
 
-    cout << "Enter a RegEx (no spaces): ";
-    cin >> RegularExpression;
-
-    vector<State> compiled = regexToNFA(RegularExpression);
-    printNFA(compiled);
-    // cout << compiled.size();
-
-    string inputs;
-
-    cout << "Enter String for testing: ";
-    cin >> inputs;
-    // testString(compiled, inputs);
-    if (simulateNFA(compiled, inputs))
-    {
-        cout << "input string is accepted";
-    }
-    else
-    {
-        cout << "input string is rejected";
-    }
+    vector<State> nfa = newNFA.createNFA(input);
+    string w;
+    cout << "Enter String to validate: ";
+    cin >> w;
+    bool accepts = newNFA.CheckIfValid(nfa, w);
+    cout << (accepts ? "Accepted" : "Rejected");
 
     return 0;
 }
