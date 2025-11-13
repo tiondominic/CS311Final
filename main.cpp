@@ -37,8 +37,10 @@ public:
             {
                 int start = States.size();
                 int end = start + 1;
+
                 States.push_back(State());
                 States.push_back(State());
+
                 States[start].transitions[c].push_back(end);
                 index.push({start, end});
             }
@@ -114,25 +116,29 @@ private:
     void processOperator(char op)
     {
         if (op == '*')
-        { // Kleene star
+        { 
             indexes f = index.top();
             index.pop();
             int start = States.size();
             int end = start + 1;
+
             States.push_back(State());
             States.push_back(State());
+
             States[start].transitions['$'].push_back(f.start);
             States[start].transitions['$'].push_back(end);
             States[f.end].transitions['$'].push_back(f.start);
             States[f.end].transitions['$'].push_back(end);
+
             index.push({start, end});
         }
         else if (op == '.')
-        { // concatenation
+        { 
             indexes f2 = index.top();
             index.pop();
             indexes f1 = index.top();
             index.pop();
+
             States[f1.end].transitions['$'].push_back(f2.start);
             index.push({f1.start, f2.end});
         }
@@ -155,7 +161,7 @@ private:
     }
 };
 
-void epsilonClosure(const vector<State> &nfa, set<int> &states)
+void epsilonClosure(const vector<State> &nfa, set<int> &states) // try to understand later
 {
     stack<int> s;
     for (int st : states)
@@ -259,11 +265,9 @@ int main()
             loop = false;
             break;
         default:
-            cout << "Invalid";
+            cout << "Invalid" << endl;
             break;
     }
-
-
 
     } while (loop);
 
