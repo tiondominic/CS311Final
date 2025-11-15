@@ -28,31 +28,31 @@ void dfs(NFA &nfa, int start, vector<bool> &visited, int subscript) // note DFS 
     }
 }
 
-void BFS(NFA &nfa, int start) //this is to convert NFA to Grammar
+void BFS(NFA &nfa)
 {
     vector<bool> visited(nfa.states.size(), false);
     queue<int> q;
-
-    int src = start;
-    q.push(src);
-    visited[src] = true;
-
+    q.push(nfa.startState);
+    visited[nfa.startState] = true;
     while (!q.empty())
     {
         int curr = q.front();
         q.pop();
-
-        for(auto &s : nfa.states[curr].transitions)
+        for (auto &s : nfa.states[curr].transitions)
         {
             for (int i : s.second)
             {
-                if (visited[i] == false)
+                cout << nfa.states[curr].symbol << "->" << s.first << nfa.states[i].symbol << endl;
+                if (!visited[i])
                 {
-                    cout << nfa.states[curr].symbol << "->" << s.first << nfa.states[i].symbol << endl;
                     visited[i] = true;
                     q.push(i);
                 }
             }
+        }
+        if (nfa.states[curr].isFinal)
+        {
+            cout << nfa.states[curr].symbol << "->" << "$" << endl;
         }
     }
 }
@@ -64,7 +64,7 @@ void convert(NFA &nfa) {
     int subscript = 0;
     
     dfs(nfa, start, visited, subscript);
-    BFS(nfa, start);
+    BFS(nfa);
     
 }
 
