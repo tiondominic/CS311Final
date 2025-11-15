@@ -9,20 +9,19 @@ using namespace std;
 // Using a BFS for Unioned States would be better but more work to be done
 // use DFS instead and work from there
 // Best case we use DFS for normal searching and BFS for the Unions -- More Work to combine DFS and BFS
-void dfs(NFA &nfa, int start, vector<bool> &visited, int subscript) // note DFS is to add symbols to states
-{    
+void dfs(NFA &nfa, int start, vector<bool> &visited, int &subscript)
+{
     State &state = nfa.states[start];
     state.symbol = string("S") + to_string(subscript);
     visited[start] = true;
-
-
+    subscript++;
     for (auto &s : state.transitions)
     {
         for (int i : s.second)
         {
-            if (visited[i] == false)
+            if (!visited[i])
             {
-                dfs(nfa, i, visited, ++subscript);
+                dfs(nfa, i, visited, subscript);
             }
         }
     }
@@ -57,15 +56,14 @@ void BFS(NFA &nfa)
     }
 }
 
-
-void convert(NFA &nfa) {
+void convert(NFA &nfa)
+{
     vector<bool> visited(nfa.states.size(), false);
     int start = nfa.startState;
     int subscript = 0;
-    
+
     dfs(nfa, start, visited, subscript);
     BFS(nfa);
-    
 }
 
 void pproductions(map<string, vector<string>> prod)
