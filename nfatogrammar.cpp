@@ -8,28 +8,53 @@ map<string, vector<string>> convert(NFA nfa)
 {
     map<string, vector<string>> productions;
 
-    for (int i = 0; i < nfa.states.size(); i++)
+    for (size_t i = 0; i < nfa.states.size(); i++)
     {
         State state = nfa.states[i];
+        string nonter = "S" + to_string(i);
+
+        if (state.transitions.empty())
+        {
+            productions[nonter].push_back("$");
+            continue;
+        }
+
         for (auto const &j : state.transitions)
         {
-            for (int k : j.second)
+            if (!j.second.empty())
             {
-                string nvar = "S" + to_string(i);
-                if (j.first == '$')
+                for (int k : j.second)
                 {
-                    cout << "S" << i << "->" << "S" << k << endl;
-                    productions[nvar].push_back("S" + to_string(k));
+                    if (j.first == '$')
+                    {
+                        productions[nonter].push_back("S" + to_string(k));
+                    }
+                    else
+                    {
+                        productions[nonter].push_back(j.first + ("S" + to_string(k)));
+                    }
                 }
-                else
-                {
-                    cout << "S" << i << "->" << j.first << "S" << k << endl;
-                    productions[nvar].push_back(j.first + "S" + to_string(k));
-                }
-
+            }
+            else
+            {
+                productions[nonter].push_back("$");
             }
         }
     }
 
     return productions;
+}
+
+void pproductions(map<string, vector<string>> prod)
+{
+    for (auto const &a : prod)
+    {
+        string nvar = a.first;
+        cout << nvar << "->";
+        for (auto const &i : a.second)
+        {
+            cout << i << "|";
+        }
+        cout << endl;
+    }
 }

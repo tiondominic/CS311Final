@@ -26,7 +26,10 @@ int main()
     }
     cout << endl;
 
-    convert(nfa);
+    map<string, vector<string>> productions = convert(nfa);
+    pproductions(productions);
+    
+    
 
     return 0;
 }

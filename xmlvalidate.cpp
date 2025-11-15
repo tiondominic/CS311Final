@@ -8,27 +8,47 @@ using namespace std;
 // Then these parts are then added to an automaton 
 // with respect to precedence as well
 
-vector<string> parseXML(string XML){
+string removespace(const string& XML){
+    string temp = "";
+    for(char i: XML){
+        if(i != ' '){
+            temp += i;
+        }
+    }
+    return temp;
+}
+
+vector<string> parseXML(const string& a){
+    string XML = removespace(a);
     vector<string> parsed;
     stack<char> operators;
+    string subs = "";
+    
 
-    for(char i: XML){
+    for(size_t c=0; c < XML.length(); c++){
+        char i = XML[c];
         if(i == '<')
         {
             operators.push('<');
+            continue;
         }
 
-        if(!operators.empty() && operators.top() == '<'){
-            string subs += i;
-        }
-        else if {
+        if(i == '>') {
 
+            operators.pop();
+            parsed.push_back(subs);
+            subs = "";
+            continue;
+        }
+        
+        subs += i;
+        if(operators.empty() && XML[c+1] == '<'){
+            parsed.push_back(subs);
+            subs = "";
+            
         }
 
     }
-
-
-
 
     return parsed;
 }

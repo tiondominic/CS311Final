@@ -8,6 +8,7 @@
 
 
 map<string, vector<string>> convert(NFA nfa);
+void pproductions(map<string, vector<string>> prod);
 
 
 #endif
