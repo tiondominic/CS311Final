@@ -5,9 +5,11 @@
 #include <map>
 #include <vector>
 #include "regextonfa.h"
+using namespace std;
 
-
-map<string, vector<string>> convert(NFA nfa);
+void dfs(NFA &nfa, int start, vector<bool> &visited, int subscript);
+void BFS(NFA &nfa, int start);
+void convert(NFA &nfa);
 void pproductions(map<string, vector<string>> prod);
 
 

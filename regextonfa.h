@@ -14,6 +14,7 @@ struct State
 {
     map<char, vector<int>> transitions;
     bool isFinal = false;
+    string symbol;
 };
 
 struct NFA
