@@ -89,7 +89,7 @@ This system fully implements Thompson’s Construction, composed of:
 | Concatenation | AB | Yes |
 | Alternation | A\|B | Yes |
 | Kleene Star | A* | Yes |
-| Grouping | (AB|C) | Yes |
+| Grouping | (AB\|C) | Yes |
 | Character classes | [A-Z], [ACGT] | Yes |
 | Escapes | \*, \( | Yes |
 
@@ -102,7 +102,7 @@ Uses epsilon-closure based simulation:
 1. Start with epsilon-closure(startState)  
 2. For each input character, move to next states  
 3. Apply epsilon-closure again  
-4. If any final state is active after input → ACCEPT  
+4. If any final state is active after input -> ACCEPT  
 
 ---
 
@@ -200,7 +200,7 @@ Upon running the program:
 4. Exit
 ```
 
-## Option 1: Regex → NFA
+## Option 1: Regex -> NFA
 
 - Generates the NFA  
 - Tests exact matching  
