@@ -1,81 +1,36 @@
-#include <iostream>
-#include <map>
-#include <vector>
+#include "nfatogrammar.h"
 #include <queue>
-#include <cctype>
-#include "regextonfa.h"
+#include <iostream>
 using namespace std;
 
-// Using a BFS for Unioned States would be better but more work to be done
-// use DFS instead and work from there
-// Best case we use DFS for normal searching and BFS for the Unions -- More Work to combine DFS and BFS
-void dfs(NFA &nfa, int start, vector<bool> &visited, int &subscript)
-{
-    State &state = nfa.states[start];
-    state.symbol = string("S") + to_string(subscript);
-    visited[start] = true;
-    subscript++;
-    for (auto &s : state.transitions)
-    {
-        for (int i : s.second)
-        {
-            if (!visited[i])
-            {
-                dfs(nfa, i, visited, subscript);
-            }
-        }
-    }
+void dfs(NFA &n,int s,vector<bool>&v,int &i){
+    v[s]=true;
+    n.states[s].symbol="S"+to_string(i++);
+    for(auto &kv:n.states[s].transitions)
+        for(int nx:kv.second)
+            if(!v[nx]) dfs(n,nx,v,i);
 }
 
-void BFS(NFA &nfa)
-{
-    vector<bool> visited(nfa.states.size(), false);
+void BFS(NFA &n){
+    vector<bool> v(n.states.size(),false);
     queue<int> q;
-    q.push(nfa.startState);
-    visited[nfa.startState] = true;
-    while (!q.empty())
-    {
-        int curr = q.front();
-        q.pop();
-        for (auto &s : nfa.states[curr].transitions)
-        {
-            for (int i : s.second)
-            {
-                cout << nfa.states[curr].symbol << "->" << s.first << nfa.states[i].symbol << endl;
-                if (!visited[i])
-                {
-                    visited[i] = true;
-                    q.push(i);
-                }
+    q.push(n.startState); v[n.startState]=true;
+
+    while(!q.empty()){
+        int u=q.front(); q.pop();
+        for(auto &kv:n.states[u].transitions){
+            for(int nx:kv.second){
+                cout<<n.states[u].symbol<<"->"<<kv.first<<n.states[nx].symbol<<"\n";
+                if(!v[nx]){ v[nx]=true; q.push(nx); }
             }
         }
-        if (nfa.states[curr].isFinal)
-        {
-            cout << nfa.states[curr].symbol << "->" << "$" << endl;
-        }
+        if(n.states[u].isFinal) cout<<n.states[u].symbol<<"->$\n";
     }
 }
 
-void convert(NFA &nfa)
-{
-    vector<bool> visited(nfa.states.size(), false);
-    int start = nfa.startState;
-    int subscript = 0;
-
-    dfs(nfa, start, visited, subscript);
-    BFS(nfa);
-}
-
-void pproductions(map<string, vector<string>> prod)
-{
-    for (auto const &a : prod)
-    {
-        string nvar = a.first;
-        cout << nvar << "->";
-        for (auto const &i : a.second)
-        {
-            cout << i << "|";
-        }
-        cout << endl;
-    }
+void convert(NFA &n){
+    vector<bool> v(n.states.size(),false);
+    int id=0;
+    dfs(n,n.startState,v,id);
+    BFS(n);
 }
