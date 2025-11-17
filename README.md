@@ -1,6 +1,6 @@
 # CS311 – Theory of Computation Final Project  
 ## Regex-to-NFA Engine, Approximate Matching, and XML Validation using PDA  
-Author: Kurt André Olaer  
+Authors: James Dominic Tion, Kurt André Olaer
 Course: CS311 – Automata Theory and Formal Languages  
 Date: November 2025  
 
