@@ -175,7 +175,7 @@ NFA createNFA(const string &regex, int &curr)
 
             curr += 2;
 
-            nfaList.push(process); // update for more streamline
+            nfaList.push(process);
         }
         else if (seg == ".")
         {
@@ -187,7 +187,6 @@ NFA createNFA(const string &regex, int &curr)
             operatorList.push("|");
             continue;
         }
-        // [a . a | . b . b]
         if (!operatorList.empty() && operatorList.top() == ".")
         {
             while (!operatorList.empty() && operatorList.top() == "." && nfaList.size() >= 2)
