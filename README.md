@@ -62,16 +62,11 @@ This system fully implements Thompson’s Construction, composed of:
    Example:  
    `[ACGT]` becomes `(A|C|G|T)`
 
-2. Tokenization and concatenation insertion  
-   Example:  
-   `AB` becomes `A . B`  
-   `A(B|C)` becomes `A . ( B | C )`
+2. Parsing a string
+   Example:
+   AB*'[ACGT]' becomes {A, . , B , . , (A|C|G|T)}
+   
 
-3. Shunting Yard Algorithm (infix to postfix)  
-   Operator precedence:  
-   - Highest: `*`  
-   - Middle: `.`  
-   - Lowest: `|`
 
 4. Thompson fragment construction  
    - Literal transitions  
