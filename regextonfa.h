@@ -20,7 +20,6 @@ struct NFA {
     int endState = -1;
 };
 
-string expandCharClasses(const string &regex);
 NFA createNFA(const string &regex, int &curr);
 set<int> epsilonClosure(const NFA& nfa, set<int> states);
 bool validateString(const NFA& nfa, const string& s);
