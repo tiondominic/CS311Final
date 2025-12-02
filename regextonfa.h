@@ -21,7 +21,14 @@ struct NFA {
 };
 
 NFA createNFA(const string &regex, int &curr);
-set<int> epsilonClosure(const NFA& nfa, set<int> states);
-bool validateString(const NFA& nfa, const string& s);
+std::set<int> epsilonClosure(const NFA& nfa, const std::set<int>& s);
+
+std::vector<std::pair<int,int>> findMatches(const NFA& nfa, const std::string& s);
+
+std::string wrapMatches(const std::string& s, std::vector<std::pair<int,int>> matches);
+
+void writeOutput(const std::string& text);
+
+void detectAndExportMatches(const NFA& nfa, const std::string& text);
 
 #endif

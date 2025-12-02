@@ -5,6 +5,7 @@
 #include <map>
 #include <stack>
 #include <queue>
+#include <bits/stdc++.h>
 using namespace std;
 
 string expandCharClasses(const string &regex) {
@@ -269,30 +270,106 @@ NFA createNFA(const string &regex, int &curr)
     return nfaList.top();
 }
 
-set<int> epsilonClosure(const NFA& nfa, set<int> s) {
-    set<int> c=s;
+set<int> epsilonClosure(const NFA& nfa, const set<int>& s) {
+    set<int> c = s;
     queue<int> q;
-    for(int x:s) q.push(x);
-    while(!q.empty()){
-        int u=q.front(); q.pop();
-        if(nfa.states[u].transitions.count('$')){
-            for(int v:nfa.states[u].transitions.at('$'))
-                if(!c.count(v)){ c.insert(v); q.push(v); }
+    for (int x : s) q.push(x);
+
+    while (!q.empty()) {
+        int u = q.front(); 
+        q.pop();
+        if (nfa.states[u].transitions.count('$')) {
+            for (int v : nfa.states[u].transitions.at('$')) {
+                if (!c.count(v)) {
+                    c.insert(v);
+                    q.push(v);
+                }
+            }
         }
     }
     return c;
 }
 
-bool validateString(const NFA& nfa,const string&s){
-    if(nfa.states.empty())return false;
-    set<int> cur=epsilonClosure(nfa,{nfa.startState});
-    for(char c:s){
-        set<int> nxt;
-        for(int u:cur)
-            if(nfa.states[u].transitions.count(c))
-                for(int v:nfa.states[u].transitions.at(c)) nxt.insert(v);
-        cur=epsilonClosure(nfa,nxt);
+vector<pair<int,int>> findMatches(const NFA& nfa, const string& s) {
+    vector<pair<int,int>> matches;
+
+    for (int i = 0; i < (int)s.size(); i++) {
+
+        set<int> cur = epsilonClosure(nfa, {nfa.startState});
+
+        for (int j = i; j < (int)s.size(); j++) {
+
+            set<int> nxt;
+            for (int u : cur) {
+                if (nfa.states[u].transitions.count(s[j])) {
+                    for (int v : nfa.states[u].transitions.at(s[j])) 
+                        nxt.insert(v);
+                }
+            }
+            if (nxt.empty()) break;
+
+            cur = epsilonClosure(nfa, nxt);
+
+            for (int u : cur) {
+                if (nfa.states[u].isFinal) {
+                    matches.push_back({i, j});
+                }
+            }
+        }
     }
-    for(int u:cur) if(nfa.states[u].isFinal) return true;
-    return false;
+
+    return matches;
+}
+
+string wrapMatches(const string& s, vector<pair<int,int>> matches) {
+    if (matches.empty()) return s;
+
+    sort(matches.begin(), matches.end());
+    vector<pair<int,int>> merged;
+
+    for (auto& m : matches) {
+        if (merged.empty() || m.first > merged.back().second + 1) {
+            merged.push_back(m);
+        } else {
+            merged.back().second = max(merged.back().second, m.second);
+        }
+    }
+
+    string out;
+    int idx = 0;
+    for (auto &p : merged) {
+        int L = p.first;
+        int R = p.second;
+
+        out += s.substr(idx, L - idx);
+        out += "[" + s.substr(L, R - L + 1) + "]";
+        idx = R + 1;
+    }
+    out += s.substr(idx);
+
+    return out;
+}
+
+void writeOutput(const string& text) {
+    std::filesystem::create_directories("outputs");
+
+    string base = "outputs/output";
+    string extension = ".txt";
+    string filename = base + extension;
+
+    int counter = 1;
+    while (std::filesystem::exists(filename)) {
+        filename = base + std::to_string(counter) + extension;
+        counter++;
+    }
+
+    ofstream out(filename);
+    out << text;
+    out.close();
+}
+
+void detectAndExportMatches(const NFA& nfa, const string& text) {
+    auto matches = findMatches(nfa, text);
+    string wrapped = wrapMatches(text, matches);
+    writeOutput(wrapped);
 }

@@ -41,7 +41,7 @@ void runRegexExact()
         getline(cin, w);
     }
 
-    cout << (validateString(nfa, w) ? "ACCEPTED\n" : "REJECTED\n");
+    detectAndExportMatches(nfa, w);
 
     cout << "\nAlphabet: ";
     for (char c : nfa.alphabet)
