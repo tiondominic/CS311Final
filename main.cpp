@@ -80,8 +80,7 @@ void runApproximate()
     cin >> k;
     cin.ignore();
 
-    bool ok = validateApprox(nfa, s, k);
-    cout << (ok ? "MATCHED WITH APPROXIMATION\n" : "NOT MATCHED\n");
+    runApproxSearchAndWrite(nfa, s, k);
 
     waitForKey();
 }

@@ -4,6 +4,11 @@
 #include <string>
 #include "regextonfa.h"
 
-bool validateApprox(const NFA &nfa, const std::string &s, int maxErrors);
+struct MatchSpan {
+    int start;
+    int end;
+};
+
+void runApproxSearchAndWrite(const NFA &nfa, const string &input, int kmax);
 
 #endif

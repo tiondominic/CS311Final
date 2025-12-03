@@ -351,15 +351,15 @@ string wrapMatches(const string& s, vector<pair<int,int>> matches) {
 }
 
 void writeOutput(const string& text) {
-    std::filesystem::create_directories("outputs");
+    filesystem::create_directories("outputs");
 
     string base = "outputs/output";
     string extension = ".txt";
     string filename = base + extension;
 
     int counter = 1;
-    while (std::filesystem::exists(filename)) {
-        filename = base + std::to_string(counter) + extension;
+    while (filesystem::exists(filename)) {
+        filename = base + to_string(counter) + extension;
         counter++;
     }
 
