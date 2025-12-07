@@ -6,10 +6,10 @@
 
 using namespace std;
 
-// Tokenizer: converts <tag> -> "tag", </tag> -> "/tag"
 vector<string> tokenizeXML(const string& xml);
 
-// PDA-based XML validator with stack simulation output
 bool validateXML(const string& xml, bool debug = true);
+
+bool validateRNA(const string& structure);
 
 #endif

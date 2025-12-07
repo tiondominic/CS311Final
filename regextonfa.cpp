@@ -133,7 +133,7 @@ NFA createNFA(const string &regex, int &curr)
         curr += 2;
         return temp;
     }
-    else if (regex == "." && regex == "|" && regex == "*")
+    else if (regex == "." || regex == "|" || regex == "*")
     {
         return temp;
     }

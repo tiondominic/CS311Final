@@ -119,6 +119,28 @@ void runXMLValidation()
     waitForKey();
 }
 
+void validateRNA()
+{
+    cout << "\n=== RNA VALIDATION (PDA) ===\n";
+    string rna;
+
+    if (using_file)
+    {
+        cout << "Using file" << endl;
+        rna = selected_file;
+    }
+    else
+    {
+        cout << "Enter RNA structure: ";
+        getline(cin, rna);
+
+    }
+    bool valid = validateRNA(rna);
+    cout << (valid ? "\nRNA IS VALID\n" : "\nRNA IS INVALID\n");
+
+    waitForKey();
+}
+
 void loadfile()
 {
     selected_file = "";
@@ -181,9 +203,10 @@ int main()
         std::cout << "1. Regex to NFA (Exact Matching)\n";
         std::cout << "2. Approximate Matching\n";
         std::cout << "3. XML Validation using PDA\n";
-        std::cout << "4. Load File\n";
-        std::cout << "5. Use file?\n";
-        std::cout << "6. Exit\n";
+        std::cout << "4. RNA secondary using PDA\n";
+        std::cout << "5. Load File\n";
+        std::cout << "6. Use file?\n";
+        std::cout << "7. Exit\n";
         std::cout << "Your choice: ";
 
         if (!(std::cin >> choice))
@@ -208,19 +231,22 @@ int main()
             runXMLValidation();
             break;
         case 4:
-            loadfile();
+            validateRNA();
             break;
         case 5:
-            using_file = !using_file;
+            loadfile();
             break;
         case 6:
+            using_file = !using_file;
+            break;
+        case 7:
             std::cout << "Exiting program. Goodbye!\n";
             break;
         default:
             std::cout << "Invalid choice. Please select a number from 1 to 5.\n";
             break;
         }
-    } while (choice != 6);
+    } while (choice != 7);
 
     return 0;
 }
