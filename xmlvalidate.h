@@ -10,6 +10,7 @@ vector<string> tokenizeXML(const string& xml);
 
 bool validateXML(const string& xml, bool debug = true);
 
-bool validateRNA(const string& structure);
+bool isMatchingPair(char open, char close);
+bool validateRNA(const string& s);
 
 #endif

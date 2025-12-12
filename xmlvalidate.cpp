@@ -100,27 +100,28 @@ bool validateXML(const string &xml, bool dbg)
     return false;
 }
 
-bool validateRNA(const string& structure) {
+bool isMatchingPair(char open, char close) {
+    return (open == 'A' && close == 'U') ||
+           (open == 'U' && close == 'A') ||
+           (open == 'C' && close == 'G') ||
+           (open == 'G' && close == 'C');
+}
+
+bool validateRNA(const string& s) {
     stack<char> st;
-    
-    for (size_t i = 0; i < structure.length(); ++i) {
-        char c = structure[i];
-        
-        if (c == '(') {
-            st.push(c);
 
-        } else if (c == ')') {
-            if (st.empty()) {
-                return false; 
-            }
-            st.pop();
-        } else if (c == '.') {
+    for (char c : s) {
+
+        if (c == '.') {
             continue;
+        }
 
-        } else {
-            return false;
+        if (!st.empty() && isMatchingPair(st.top(), c)) {
+            st.pop();
+        }
+        else {
+            st.push(c);
         }
     }
-
     return st.empty();
 }

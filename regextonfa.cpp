@@ -8,47 +8,72 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-string expandCharClasses(const string &regex) {
+string expandCharClasses(const string &regex)
+{
     string out;
     size_t i = 0;
-    while (i < regex.size()) {
+    while (i < regex.size())
+    {
         char c = regex[i];
-        if (c == '\\') {
-            if (i + 1 < regex.size()) {
+        if (c == '\\')
+        {
+            if (i + 1 < regex.size())
+            {
                 out += regex.substr(i, 2);
                 i += 2;
-            } else out += regex[i++];
+            }
+            else
+                out += regex[i++];
         }
-        else if (c == '[') {
+        else if (c == '[')
+        {
             size_t j = i + 1;
-            while (j < regex.size() && !(regex[j] == ']' && regex[j-1] != '\\')) j++;
-            if (j == regex.size()) { out += '['; i++; continue; }
+            while (j < regex.size() && !(regex[j] == ']' && regex[j - 1] != '\\'))
+                j++;
+            if (j == regex.size())
+            {
+                out += '[';
+                i++;
+                continue;
+            }
 
-            string content = regex.substr(i+1, j-(i+1));
+            string content = regex.substr(i + 1, j - (i + 1));
             vector<char> symbols;
-            for (size_t k=0; k<content.size(); k++) {
-                if (content[k]=='\\' && k+1<content.size()) {
+            for (size_t k = 0; k < content.size(); k++)
+            {
+                if (content[k] == '\\' && k + 1 < content.size())
+                {
                     symbols.push_back(content[++k]);
-                } else if (k+2<content.size() && content[k+1]=='-') {
-                    char a = content[k], b = content[k+2];
-                    if (a<=b) for(char x=a;x<=b;x++) symbols.push_back(x);
-                    else      for(char x=a;x>=b;x--) symbols.push_back(x);
-                    k+=2;
-                } else symbols.push_back(content[k]);
+                }
+                else if (k + 2 < content.size() && content[k + 1] == '-')
+                {
+                    char a = content[k], b = content[k + 2];
+                    if (a <= b)
+                        for (char x = a; x <= b; x++)
+                            symbols.push_back(x);
+                    else
+                        for (char x = a; x >= b; x--)
+                            symbols.push_back(x);
+                    k += 2;
+                }
+                else
+                    symbols.push_back(content[k]);
             }
             out.push_back('(');
-            for (size_t k=0; k<symbols.size(); k++) {
+            for (size_t k = 0; k < symbols.size(); k++)
+            {
                 out.push_back(symbols[k]);
-                if (k+1<symbols.size()) out.push_back('|');
+                if (k + 1 < symbols.size())
+                    out.push_back('|');
             }
             out.push_back(')');
-            i = j+1;
+            i = j + 1;
         }
-        else out += regex[i++];
+        else
+            out += regex[i++];
     }
     return out;
 }
-
 
 vector<string> parseSegments(string a)
 {
@@ -228,19 +253,19 @@ NFA createNFA(const string &regex, int &curr)
             NFA left = nfaList.top();
             nfaList.pop();
 
-            left.states[left.states.size()-1].isFinal = false;
-            right.states[right.states.size()-1].isFinal = false;
+            left.states[left.states.size() - 1].isFinal = false;
+            right.states[right.states.size() - 1].isFinal = false;
 
             State newstart = State();
             State newend = State();
             newstart.transitions['$'].push_back(left.startState);
             newstart.transitions['$'].push_back(right.startState);
-            left.states[left.states.size()-1].transitions['$'].push_back(curr+1);
-            right.states[right.states.size()-1].transitions['$'].push_back(curr+1);
+            left.states[left.states.size() - 1].transitions['$'].push_back(curr + 1);
+            right.states[right.states.size() - 1].transitions['$'].push_back(curr + 1);
             newend.isFinal = true;
 
-
-            for(auto &s : right.states){
+            for (auto &s : right.states)
+            {
                 left.states.push_back(s);
             }
 
@@ -253,7 +278,6 @@ NFA createNFA(const string &regex, int &curr)
             curr += 2;
 
             nfaList.push(left);
-
         }
         else
         {
@@ -261,26 +285,35 @@ NFA createNFA(const string &regex, int &curr)
         }
     }
 
-    for(char i: regex){
-        if(isalnum(i)){
+    for (char i : regex)
+    {
+        if (isalnum(i))
+        {
             nfaList.top().alphabet.insert(i);
         }
     }
-    if (nfaList.empty()) return temp; 
+    if (nfaList.empty())
+        return temp;
     return nfaList.top();
 }
 
-set<int> epsilonClosure(const NFA& nfa, const set<int>& s) {
+set<int> epsilonClosure(const NFA &nfa, const set<int> &s)
+{
     set<int> c = s;
     queue<int> q;
-    for (int x : s) q.push(x);
+    for (int x : s)
+        q.push(x);
 
-    while (!q.empty()) {
-        int u = q.front(); 
+    while (!q.empty())
+    {
+        int u = q.front();
         q.pop();
-        if (nfa.states[u].transitions.count('$')) {
-            for (int v : nfa.states[u].transitions.at('$')) {
-                if (!c.count(v)) {
+        if (nfa.states[u].transitions.count('$'))
+        {
+            for (int v : nfa.states[u].transitions.at('$'))
+            {
+                if (!c.count(v))
+                {
                     c.insert(v);
                     q.push(v);
                 }
@@ -290,28 +323,36 @@ set<int> epsilonClosure(const NFA& nfa, const set<int>& s) {
     return c;
 }
 
-vector<pair<int,int>> findMatches(const NFA& nfa, const string& s) {
-    vector<pair<int,int>> matches;
+vector<pair<int, int>> findMatches(const NFA &nfa, const string &s)
+{
+    vector<pair<int, int>> matches;
 
-    for (int i = 0; i < (int)s.size(); i++) {
+    for (int i = 0; i < (int)s.size(); i++)
+    {
 
         set<int> cur = epsilonClosure(nfa, {nfa.startState});
 
-        for (int j = i; j < (int)s.size(); j++) {
+        for (int j = i; j < (int)s.size(); j++)
+        {
 
             set<int> nxt;
-            for (int u : cur) {
-                if (nfa.states[u].transitions.count(s[j])) {
-                    for (int v : nfa.states[u].transitions.at(s[j])) 
+            for (int u : cur)
+            {
+                if (nfa.states[u].transitions.count(s[j]))
+                {
+                    for (int v : nfa.states[u].transitions.at(s[j]))
                         nxt.insert(v);
                 }
             }
-            if (nxt.empty()) break;
+            if (nxt.empty())
+                break;
 
             cur = epsilonClosure(nfa, nxt);
 
-            for (int u : cur) {
-                if (nfa.states[u].isFinal) {
+            for (int u : cur)
+            {
+                if (nfa.states[u].isFinal)
+                {
                     matches.push_back({i, j});
                 }
             }
@@ -321,23 +362,30 @@ vector<pair<int,int>> findMatches(const NFA& nfa, const string& s) {
     return matches;
 }
 
-string wrapMatches(const string& s, vector<pair<int,int>> matches) {
-    if (matches.empty()) return s;
+string wrapMatches(const string &s, vector<pair<int, int>> matches)
+{
+    if (matches.empty())
+        return s;
 
     sort(matches.begin(), matches.end());
-    vector<pair<int,int>> merged;
+    vector<pair<int, int>> merged;
 
-    for (auto& m : matches) {
-        if (merged.empty() || m.first > merged.back().second + 1) {
+    for (auto &m : matches)
+    {
+        if (merged.empty() || m.first > merged.back().second + 1)
+        {
             merged.push_back(m);
-        } else {
+        }
+        else
+        {
             merged.back().second = max(merged.back().second, m.second);
         }
     }
 
     string out;
     int idx = 0;
-    for (auto &p : merged) {
+    for (auto &p : merged)
+    {
         int L = p.first;
         int R = p.second;
 
@@ -350,7 +398,8 @@ string wrapMatches(const string& s, vector<pair<int,int>> matches) {
     return out;
 }
 
-void writeOutput(const string& text) {
+void writeOutput(const string &text)
+{
     filesystem::create_directories("outputs");
 
     string base = "outputs/output";
@@ -358,7 +407,8 @@ void writeOutput(const string& text) {
     string filename = base + extension;
 
     int counter = 1;
-    while (filesystem::exists(filename)) {
+    while (filesystem::exists(filename))
+    {
         filename = base + to_string(counter) + extension;
         counter++;
     }
@@ -368,7 +418,8 @@ void writeOutput(const string& text) {
     out.close();
 }
 
-void detectAndExportMatches(const NFA& nfa, const string& text) {
+void detectAndExportMatches(const NFA &nfa, const string &text)
+{
     auto matches = findMatches(nfa, text);
     string wrapped = wrapMatches(text, matches);
     writeOutput(wrapped);
