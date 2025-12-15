@@ -8,138 +8,75 @@
 #include "regextonfa.h"
 using namespace std;
 
-static void pushClosure(const NFA &nfa, int state, int pos, int err,
-                        queue<tuple<int,int,int>> &q,
-                        vector<vector<vector<bool>>> &vis)
-{
-    queue<int> w;
-    vector<bool> seen(nfa.states.size(), false);
-    w.push(state); seen[state]=true;
 
-    while(!w.empty()){
-        int s=w.front(); w.pop();
-        
-        if(!vis[s][pos][err]){
-            vis[s][pos][err]=true;
-            q.emplace(s,pos,err);
-        }
-        
-        if(nfa.states[s].transitions.count('$')){
-            for(int nxt:nfa.states[s].transitions.at('$'))
-                if(!seen[nxt]){ seen[nxt]=true; w.push(nxt); }
-        }
-    }
-}
-
-vector<MatchSpan> findAllApproxMatches(const NFA &nfa, const string &s, int kmax)
+string traceApproxMatch(const NFA &nfa, const string &s, int kmax)
 {
-    vector<MatchSpan> matches;
+    string out = "=== DNA SEARCH ===\n";
     int L = s.size();
 
     for (int start = 0; start < L; ++start)
     {
-        int N = nfa.states.size();
-        vector<vector<vector<bool>>> vis(
-            N, vector<vector<bool>>(L+1, vector<bool>(kmax+1,false)));
+        int pos = start;
+        int state = nfa.startState;
+        int err = 0;
+        bool stopped = false;
 
-        queue<tuple<int,int,int>> q;
+        out += "Match at index " + to_string(start) + ":\n";
 
-        pushClosure(nfa, nfa.startState, start, 0, q, vis);
+        while (pos <= L && !stopped)
+        {
+            bool moved = false;
 
-        while (!q.empty()) {
-            auto [state, pos, err] = q.front();
-            q.pop();
-
-            if (nfa.states[state].isFinal) {
-                matches.push_back({start, pos});
+            if (pos < L && nfa.states[state].transitions.count(s[pos]))
+            {
+                int nxt = nfa.states[state].transitions.at(s[pos])[0];
+                out += "S" + to_string(state) + " --" + s[pos] + "--> S" + to_string(nxt) + "\n";
+                state = nxt;
+                pos++;
+                moved = true;
+                continue;
             }
 
-            if (pos < L) {
-                char c = s[pos];
-                if (nfa.states[state].transitions.count(c)) {
-                    for (int nxt : nfa.states[state].transitions.at(c))
-                        pushClosure(nfa, nxt, pos+1, err, q, vis);
-                }
+            if (nfa.states[state].transitions.count('$'))
+            {
+                int nxt = nfa.states[state].transitions.at('$')[0];
+                out += "S" + to_string(state) + " --$--> S" + to_string(nxt) + "\n";
+                state = nxt;
+                moved = true;
+                continue;
             }
 
-            if (pos < L && err < kmax) {
-                char c = s[pos];
-                for (auto &kv : nfa.states[state].transitions) {
-                    char a = kv.first;
-                    if (a != '$' && a != c) { 
-                        for (int nxt : kv.second)
-                            pushClosure(nfa, nxt, pos+1, err+1, q, vis);
-                    }
-                }
-            }
-
-            if (pos < L && err < kmax) {
-                int np = pos+1, ne = err+1;
-                if (!vis[state][np][ne]) {
-                    vis[state][np][ne] = true;
-                    q.emplace(state, np, ne);
-                }
-            }
-
-            if (err < kmax) {
-                for (auto &kv : nfa.states[state].transitions) {
+            if (err < kmax)
+            {
+                bool hasForced = false;
+                for (auto &kv : nfa.states[state].transitions)
+                {
                     char a = kv.first;
                     if (a == '$') continue;
-                    
-                    for (int nxt : kv.second)
-                        pushClosure(nfa, nxt, pos, err+1, q, vis);
+
+                    int nxt = kv.second[0];
+                    out += "S" + to_string(state) + " --?--> S" + to_string(nxt) + "\n";
+                    state = nxt;
+                    pos++;
+                    err++;
+                    hasForced = true;
+                    moved = true;
+                    break;
                 }
+                if (hasForced) continue;
             }
-        }
-    }
 
-    return matches;
-}
-
-string applyBrackets(const string &s, const vector<MatchSpan> &matches)
-{
-    map<int, pair<int, int>> bracketEvents; 
-
-    for (const auto& match : matches) {
-        bracketEvents[match.start].first++; 
-        bracketEvents[match.end].second++;
-    }
-
-    string out = "";
-    int L = s.size();
-    for (int i = 0; i <= L; ++i) {
-        
-        if (bracketEvents.count(i)) {
-            const auto& event = bracketEvents.at(i);
-            
-            for (int k = 0; k < event.second; ++k) {
-                out += "]";
-            }
-            
-            for (int k = 0; k < event.first; ++k) {
-                out += "[";
+            if (!moved)
+            {
+                if (pos < L)
+                    out += "No valid transition for '" + string(1, s[pos]) + "', stopping.\n";
+                stopped = true;
             }
         }
 
-        if (i < L) {
-            out += s[i];
-        }
+        if (nfa.states[state].isFinal)
+            out += "S" + to_string(state) + " --> accepting state\n\n";
     }
 
     return out;
-}
-
-
-
-void runApproxSearchAndWrite(const NFA &nfa, const string &input, int kmax)
-{
-    vector<MatchSpan> matches = findAllApproxMatches(nfa, input, kmax);
-
-    if (matches.empty()) {
-        writeOutput(input, "outputs");
-        return;
-    }
-
-    string marked = applyBrackets(input, matches);
-    writeOutput(marked, "outputs");
 }

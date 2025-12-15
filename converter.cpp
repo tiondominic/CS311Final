@@ -45,12 +45,19 @@ string GrammarAndTransition(NFA &n)
                     q.push(nx);
                 }
             }
+
             outputTransition += "}\n";
         }
         if (n.states[u].isFinal)
             outputGrammar += n.states[u].symbol + "->$\n";
     }
-
+    outputTransition += "Alphabet: ";
+    for (char c : n.alphabet)
+    {
+        outputTransition += c;
+        outputTransition += ' ';
+    }
+    outputTransition += "\n";
 
     output = outputGrammar + outputTransition;
     return output;

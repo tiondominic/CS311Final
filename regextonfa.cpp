@@ -146,6 +146,7 @@ NFA createNFA(const string &regex, int &curr)
     }
     else if (regex.length() == 1)
     {
+        temp.alphabet.insert(regex[0]);
         temp.states.push_back(State());
         temp.states.push_back(State());
 
@@ -285,6 +286,9 @@ NFA createNFA(const string &regex, int &curr)
         }
     }
 
+    if (nfaList.empty())
+        return temp;
+
     for (char i : regex)
     {
         if (isalnum(i))
@@ -292,8 +296,7 @@ NFA createNFA(const string &regex, int &curr)
             nfaList.top().alphabet.insert(i);
         }
     }
-    if (nfaList.empty())
-        return temp;
+
     return nfaList.top();
 }
 
@@ -410,15 +413,18 @@ string findDNAPatterns(const NFA &nfa, const string &dna)
     vector<string> results;
     string output = "\n=== DNA SEARCH ===\n";
     int i = 0;
+    int j;
 
     for (; i < dna.size(); i++)
     {
+        j = i;
         string substring = dna.substr(i);
         string trace = traceTransitions(nfa, substring, i);
 
+
         if (trace.find("accepting state") != string::npos)
         {
-            results.push_back("Match at index " + to_string(i) + ":\n" + trace);
+            results.push_back("Match starting at index " + to_string(j) + " to index " + to_string(i--) + ":\n" + trace);
         }
     }
 

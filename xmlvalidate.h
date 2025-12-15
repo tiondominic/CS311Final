@@ -11,6 +11,6 @@ vector<string> tokenizeXML(const string& xml);
 bool validateXML(const string& xml, bool debug = true);
 
 bool isMatchingPair(char open, char close);
-bool validateRNA(const string& s);
+string traceRNAValidation(const string& s);
 
 #endif

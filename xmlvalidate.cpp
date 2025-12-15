@@ -107,21 +107,33 @@ bool isMatchingPair(char open, char close) {
            (open == 'G' && close == 'C');
 }
 
-bool validateRNA(const string& s) {
+string traceRNAValidation(const string& s) {
     stack<char> st;
+    string out = "=== RNA TRACE ===\n";
 
-    for (char c : s) {
+    for (size_t i = 0; i < s.size(); ++i) {
+        char c = s[i];
 
         if (c == '.') {
+            out += "Position " + to_string(i) + ": '.' ignored, no action\n";
             continue;
         }
 
         if (!st.empty() && isMatchingPair(st.top(), c)) {
+            char top = st.top();
             st.pop();
-        }
-        else {
+            out += "Position " + to_string(i) + ": " + top + " --matches--> " + c + ", pop from stack\n";
+        } else {
             st.push(c);
+            out += "Position " + to_string(i) + ": " + c + " pushed onto stack\n";
         }
     }
-    return st.empty();
+
+    if (st.empty()) {
+        out += "Stack empty: RNA sequence is valid\n";
+    } else {
+        out += "Stack not empty: RNA sequence is invalid\n";
+    }
+
+    return out;
 }

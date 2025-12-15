@@ -4,11 +4,7 @@
 #include <string>
 #include "regextonfa.h"
 
-struct MatchSpan {
-    int start;
-    int end;
-};
 
-void runApproxSearchAndWrite(const NFA &nfa, const string &input, int kmax);
+string traceApproxMatch(const NFA &nfa, const string &s, int kmax);
 
 #endif

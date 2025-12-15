@@ -84,7 +84,8 @@ void runApproximate()
     cin >> k;
     cin.ignore();
 
-    runApproxSearchAndWrite(nfa, s, k);
+    string out = traceApproxMatch(nfa, s, k);
+    writeOutput(out, "outputs-a");
 
     waitForKey();
 }
@@ -139,8 +140,8 @@ void validateRNA()
         getline(cin, rna);
 
     }
-    bool valid = validateRNA(rna);
-    cout << (valid ? "\nRNA IS VALID\n" : "\nRNA IS INVALID\n");
+    string RNA = traceRNAValidation(rna);
+    writeOutput(RNA, "outputs-p");
 
     waitForKey();
 }

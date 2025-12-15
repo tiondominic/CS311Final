@@ -3,5 +3,5 @@ makefile
 *.exe
 *.o
 outputs-r/
-outputs-t/
-outputs-g/
+outputs-a/
+outputs-p/
