@@ -136,10 +136,10 @@ void runApproxSearchAndWrite(const NFA &nfa, const string &input, int kmax)
     vector<MatchSpan> matches = findAllApproxMatches(nfa, input, kmax);
 
     if (matches.empty()) {
-        writeOutput(input);
+        writeOutput(input, "outputs");
         return;
     }
 
     string marked = applyBrackets(input, matches);
-    writeOutput(marked);
+    writeOutput(marked, "outputs");
 }

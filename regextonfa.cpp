@@ -323,86 +323,117 @@ set<int> epsilonClosure(const NFA &nfa, const set<int> &s)
     return c;
 }
 
-vector<pair<int, int>> findMatches(const NFA &nfa, const string &s)
-{
-    vector<pair<int, int>> matches;
 
-    for (int i = 0; i < (int)s.size(); i++)
-    {
+string traceTransitions(const NFA &nfa, const string &input, int &i) {
+    string output;
+    set<pair<int,int>> printedTransitions;
+    set<int> currentStates = { nfa.startState };
+    queue<int> q;
 
-        set<int> cur = epsilonClosure(nfa, {nfa.startState});
+    for (int s : currentStates) q.push(s);
+    set<int> visited;
+    while (!q.empty()) {
+        int s = q.front(); q.pop();
+        if (!visited.insert(s).second) continue;
 
-        for (int j = i; j < (int)s.size(); j++)
-        {
-
-            set<int> nxt;
-            for (int u : cur)
-            {
-                if (nfa.states[u].transitions.count(s[j]))
-                {
-                    for (int v : nfa.states[u].transitions.at(s[j]))
-                        nxt.insert(v);
+        if (nfa.states[s].transitions.count('$')) {
+            for (int t : nfa.states[s].transitions.at('$')) {
+                if (printedTransitions.insert({s,t}).second) {
+                    output += nfa.states[s].symbol + " --$--> " + nfa.states[t].symbol + "\n";
                 }
-            }
-            if (nxt.empty())
-                break;
-
-            cur = epsilonClosure(nfa, nxt);
-
-            for (int u : cur)
-            {
-                if (nfa.states[u].isFinal)
-                {
-                    matches.push_back({i, j});
-                }
+                q.push(t);
+                currentStates.insert(t);
             }
         }
     }
 
-    return matches;
-}
+    int consumed = 0;
 
-string wrapMatches(const string &s, vector<pair<int, int>> matches)
-{
-    if (matches.empty())
-        return s;
+    for (char c : input) {
+        set<int> nextStates;
 
-    sort(matches.begin(), matches.end());
-    vector<pair<int, int>> merged;
-
-    for (auto &m : matches)
-    {
-        if (merged.empty() || m.first > merged.back().second + 1)
-        {
-            merged.push_back(m);
+        for (int s : currentStates) {
+            if (nfa.states[s].transitions.count(c)) {
+                for (int t : nfa.states[s].transitions.at(c)) {
+                    if (printedTransitions.insert({s,t}).second) {
+                        output += nfa.states[s].symbol + " --" + c + "--> " + nfa.states[t].symbol + "\n";
+                    }
+                    nextStates.insert(t);
+                }
+            }
         }
-        else
-        {
-            merged.back().second = max(merged.back().second, m.second);
+
+        if (nextStates.empty()) {
+            output += "No valid transition for '" + string(1, c) + "', stopping.\n";
+            break;
+        }
+
+        q = queue<int>();
+        visited.clear();
+        for (int s : nextStates) q.push(s);
+
+        while (!q.empty()) {
+            int s = q.front(); q.pop();
+            if (!visited.insert(s).second) continue;
+
+            if (nfa.states[s].transitions.count('$')) {
+                for (int t : nfa.states[s].transitions.at('$')) {
+                    if (printedTransitions.insert({s,t}).second) {
+                        output += nfa.states[s].symbol + " --$--> " + nfa.states[t].symbol + "\n";
+                    }
+                    q.push(t);
+                    nextStates.insert(t);
+                }
+            }
+        }
+
+        currentStates = nextStates;
+        consumed++;
+    }
+
+    bool accepted = false;
+    for (int s : currentStates) {
+        if (nfa.states[s].isFinal) {
+            accepted = true;
+            output += nfa.states[s].symbol + " --> accepting state\n";
         }
     }
 
-    string out;
-    int idx = 0;
-    for (auto &p : merged)
-    {
-        int L = p.first;
-        int R = p.second;
+    if (!accepted) output += "Input rejected.\n";
 
-        out += s.substr(idx, L - idx);
-        out += "[" + s.substr(L, R - L + 1) + "]";
-        idx = R + 1;
-    }
-    out += s.substr(idx);
-
-    return out;
+    i += consumed;
+    return output;
 }
 
-void writeOutput(const string &text)
+string findDNAPatterns(const NFA &nfa, const string &dna)
 {
-    filesystem::create_directories("outputs");
+    vector<string> results;
+    string output = "\n=== DNA SEARCH ===\n";
+    int i = 0;
 
-    string base = "outputs/output";
+    for (; i < dna.size(); i++)
+    {
+        string substring = dna.substr(i);
+        string trace = traceTransitions(nfa, substring, i);
+
+        if (trace.find("accepting state") != string::npos)
+        {
+            results.push_back("Match at index " + to_string(i) + ":\n" + trace);
+        }
+    }
+
+    for(string s: results){
+        output += s + "\n";
+    }
+
+    return output;
+}
+
+void writeOutput(const string &text, const string &folder)
+{
+    filesystem::create_directories(folder);
+
+    string base = folder + "/output";
     string extension = ".txt";
     string filename = base + extension;
 
@@ -418,9 +449,3 @@ void writeOutput(const string &text)
     out.close();
 }
 
-void detectAndExportMatches(const NFA &nfa, const string &text)
-{
-    auto matches = findMatches(nfa, text);
-    string wrapped = wrapMatches(text, matches);
-    writeOutput(wrapped);
-}

@@ -21,14 +21,13 @@ struct NFA {
 };
 
 NFA createNFA(const string &regex, int &curr);
-std::set<int> epsilonClosure(const NFA& nfa, const std::set<int>& s);
+set<int> epsilonClosure(const NFA& nfa, const set<int>& s);
 
-std::vector<std::pair<int,int>> findMatches(const NFA& nfa, const std::string& s);
+string traceTransitions(const NFA &nfa, const string &input, int &i);
 
-std::string wrapMatches(const std::string& s, std::vector<std::pair<int,int>> matches);
+string findDNAPatterns(const NFA &nfa, const string &dna);
 
-void writeOutput(const std::string& text);
+void writeOutput(const string& text, const string &folder);
 
-void detectAndExportMatches(const NFA& nfa, const std::string& text);
 
 #endif

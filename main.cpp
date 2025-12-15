@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include "regextonfa.h"
-#include "nfatogrammar.h"
+#include "converter.h"
 #include "approximate.h"
 #include "xmlvalidate.h"
 using namespace std;
@@ -41,13 +41,17 @@ void runRegexExact()
         getline(cin, w);
     }
 
-    detectAndExportMatches(nfa, w);
+    string output;
+    string gt = convert(nfa);
+    string traced = findDNAPatterns(nfa, w);
+    output += gt + traced;
+    
+
+    writeOutput(output, "outputs-r");
 
     cout << "\nAlphabet: ";
     for (char c : nfa.alphabet)
         cout << c << " ";
-    cout << "\n\nGrammar Productions:\n";
-    convert(nfa);
 
     waitForKey();
 }

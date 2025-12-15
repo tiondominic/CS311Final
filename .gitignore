@@ -2,4 +2,6 @@
 makefile
 *.exe
 *.o
-outputs/
+outputs-r/
+outputs-t/
+outputs-g/
