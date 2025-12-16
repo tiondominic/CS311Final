@@ -61,11 +61,13 @@ void runApproximate()
     cout << "\n=== APPROXIMATE MATCHING ===\n";
 
     string regex;
+    string out;
     cout << "Enter Regex: ";
     getline(cin, regex);
 
     int a = 0;
     NFA nfa = createNFA(regex, a);
+    out += convert(nfa);
 
     string s;
     if (using_file)
@@ -84,7 +86,8 @@ void runApproximate()
     cin >> k;
     cin.ignore();
 
-    string out = traceApproxMatch(nfa, s, k);
+    out += "\n=== APPROXIMATE ===\n";
+    out += traceApproxMatch(nfa, s, k);
     writeOutput(out, "outputs-a");
 
     waitForKey();
@@ -141,6 +144,7 @@ void validateRNA()
 
     }
     string RNA = traceRNAValidation(rna);
+
     writeOutput(RNA, "outputs-p");
 
     waitForKey();

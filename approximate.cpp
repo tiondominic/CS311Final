@@ -30,7 +30,7 @@ string traceApproxMatch(const NFA &nfa, const string &s, int kmax)
             if (pos < L && nfa.states[state].transitions.count(s[pos]))
             {
                 int nxt = nfa.states[state].transitions.at(s[pos])[0];
-                out += "S" + to_string(state) + " --" + s[pos] + "--> S" + to_string(nxt) + "\n";
+                out += nfa.states[state].symbol + " --" + s[pos] + "--> " + nfa.states[nxt].symbol + "\n";
                 state = nxt;
                 pos++;
                 moved = true;
@@ -40,7 +40,7 @@ string traceApproxMatch(const NFA &nfa, const string &s, int kmax)
             if (nfa.states[state].transitions.count('$'))
             {
                 int nxt = nfa.states[state].transitions.at('$')[0];
-                out += "S" + to_string(state) + " --$--> S" + to_string(nxt) + "\n";
+                out += nfa.states[state].symbol + " --$--> " + nfa.states[nxt].symbol + "\n";
                 state = nxt;
                 moved = true;
                 continue;
@@ -55,7 +55,7 @@ string traceApproxMatch(const NFA &nfa, const string &s, int kmax)
                     if (a == '$') continue;
 
                     int nxt = kv.second[0];
-                    out += "S" + to_string(state) + " --?--> S" + to_string(nxt) + "\n";
+                    out += nfa.states[state].symbol + " --?--> " + nfa.states[nxt].symbol + "\n";
                     state = nxt;
                     pos++;
                     err++;
@@ -75,7 +75,7 @@ string traceApproxMatch(const NFA &nfa, const string &s, int kmax)
         }
 
         if (nfa.states[state].isFinal)
-            out += "S" + to_string(state) + " --> accepting state\n\n";
+            out += nfa.states[state].symbol + " --> accepting state\n\n";
     }
 
     return out;
