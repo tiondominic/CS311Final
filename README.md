@@ -1,321 +1,126 @@
-# CS311 – Theory of Computation Final Project  
-## Regex-to-NFA Engine, Approximate Matching, and XML Validation using PDA  
-Authors: James Dominic Tion, Kurt André Olaer
-Course: CS311 – Automata Theory and Formal Languages  
-Date: November 2025  
+# Text Search Engine and Bioinformatics Project
+
+**Course:** CS311 – Automata Theory and Formal Languages
+
+**Academic Term:** December 2025
+
+**Authors:** James Dominic Tion, Kurt Andre Olaer, Nathaniel Beatisula
 
 ---
 
-# 1. Introduction
+## 1. Abstract
 
-This project implements a unified automata simulator that covers:
+This project demonstrates the practical application of Automata Theory in the domains of Information Retrieval and Computational Biology. By implementing a suite of formal language processors—including a Regex-to-NFA engine, an Approximate String Matching algorithm, and a Pushdown Automaton (PDA) for structural validation—this system illustrates the distinctions in expressive power between Regular Languages and Context-Free Languages (CFLs). The software serves as a comparative simulator, visualizing how finite state memory handles pattern matching and where stack-based memory becomes necessary for hierarchical data (XML and RNA).
 
-- Regex to NFA conversion using Thompson’s Construction  
-- Exact NFA simulation for string acceptance  
-- NFA to Regular Grammar conversion  
-- Approximate matching over regular languages  
-- XML structural validation using a Pushdown Automaton (PDA)
+## 2. Theoretical Framework
 
-The goal is to demonstrate the differences in expressive power between:
+The system is designed around the **Chomsky Hierarchy**, explicitly distinguishing between Type-3 (Regular) and Type-2 (Context-Free) languages.
 
-- Regular languages (NFA, regex)  
-- Extended finite automata (approximate acceptance)  
-- Context-free languages (PDA for XML)  
+### 2.1. Regular Languages (Type-3)
 
-All features are accessed through a simple CLI menu written in C++.
+The core search engine treats user queries as regular expressions. These are compiled into **Non-Deterministic Finite Automata (NFA)**.
 
----
+* **Formal Definition:** M = (Q, \Sigma, \delta, q_0, F)
+* **Construction Algorithm:** Thompson’s Construction is used to transform regular expressions into an equivalent NFA with \epsilon-transitions.
+* **Application:** Used for exact DNA pattern matching and keyword search.
 
-# 2. System Architecture
+### 2.2. Approximate Matching (Extended Finite Automata)
 
-```
-MAIN MENU
- ├── 1. Regex to NFA (Exact Matching)
- │     ├── Tokenize regex
- │     ├── Insert explicit concatenation operators
- │     ├── Convert to postfix using shunting yard
- │     ├── Build NFA using Thompson’s construction
- │     ├── Exact NFA simulation
- │     └── NFA to Regular Grammar conversion
- │
- ├── 2. Approximate Matching
- │     ├── Construct NFA
- │     ├── BFS on (state, position, errors)
- │     └── Accept if final state reachable with <= k errors
- │
- └── 3. XML Validation (PDA)
-       ├── Tokenize XML tags
-       ├── Stack push for start tags
-       ├── Stack pop and compare for end tags
-       └── Accept if stack is empty at end
-```
+While standard NFAs recognize exact regular languages, biological sequence analysis often requires error tolerance. This module extends the NFA simulation to allow transition errors (substitutions, insertions, deletions) up to a threshold k. This demonstrates how finite automata can be adapted for fuzzy logic applications without leaving the regular language domain.
+
+### 2.3. Context-Free Languages (Type-2)
+
+Regular languages cannot model nested structures (e.g., matching an arbitrary number of open and close tags). To address this, the system implements a **Pushdown Automaton (PDA)**.
+
+* **Formal Definition:** M = (Q, \Sigma, \Gamma, \delta, q_0, Z, F) where \Gamma represents the stack alphabet.
+* **Application:** Used for validating XML document structure and RNA secondary folding (Watson-Crick base pairing), which essentially follows the Dyck language model of balanced parentheses.
 
 ---
 
-# 3. Regular Languages Module
+## 3. System Architecture & Algorithms
 
-## 3.1 Regex to NFA Construction
+The solution is implemented in **C++** and modularized into three distinct engines:
 
-This system fully implements Thompson’s Construction, composed of:
+### 3.1. The Regex Engine (`regextonfa.cpp`)
 
-1. Character class expansion  
-   Example:  
-   `[ACGT]` becomes `(A|C|G|T)`
+* **Preprocessing:** Expands character classes (e.g., `[A-C]` \to `(A|B|C)`) and inserts explicit concatenation operators.
+* **Compilation:** Parses the postfix regex using a shunting-yard approach and builds the NFA using Thompson’s method.
+* **Simulation:** utilizing an \epsilon-closure algorithm to track multiple active states simultaneously, simulating non-determinism on deterministic hardware.
+* **Grammar Conversion:** Capable of reverse-engineering the NFA into a **Right-Linear Regular Grammar** (e.g., A \to aB).
 
-2. Parsing a string
-   Example:
-   AB*'[ACGT]' becomes {A, . , B , . , (A|C|G|T)}
-   
+### 3.2. The Approximate Matcher (`approximate.cpp`)
 
+* **Algorithm:** Performs a Breadth-First Search (BFS) over the state space tuple (state, index, error\_count).
+* **Acceptance Condition:** A string is accepted if a final state is reachable when index = |input| and error\_count \le k.
+* **Bioinformatics Use Case:** Identifies gene sequences that may have mutated but remain functionally similar to the search pattern.
 
-4. Thompson fragment construction  
-   - Literal transitions  
-   - Concatenation  
-   - Alternation  
-   - Kleene star  
-   - Parentheses  
-   - Escapes
+### 3.3. The Structural Validator (`xmlvalidate.cpp`)
 
-### Supported Regex Features
-
-| Feature | Example | Supported |
-|--------|---------|-----------|
-| Literal characters | A, b, 3 | Yes |
-| Concatenation | AB | Yes |
-| Alternation | A\|B | Yes |
-| Kleene Star | A* | Yes |
-| Grouping | (AB\|C) | Yes |
-| Character classes | [A-Z], [ACGT] | Yes |
-| Escapes | \*, \( | Yes |
+* **Mechanism:** Implements a deterministic PDA using the C++ `std::stack`.
+* **XML Validation:** Pushes opening tags onto the stack and pops them upon encountering closing tags, ensuring strict LIFO (Last-In, First-Out) nesting.
+* **RNA Folding:** Validates secondary structures by treating base pairs (A-U, C-G) as matching delimiters, analogous to checking balanced parentheses in compiler design.
 
 ---
 
-## 3.2 Exact NFA Simulation
+## 4. Usage Guidelines
 
-Uses epsilon-closure based simulation:
+### 4.1. Compilation
 
-1. Start with epsilon-closure(startState)  
-2. For each input character, move to next states  
-3. Apply epsilon-closure again  
-4. If any final state is active after input -> ACCEPT  
+The project utilizes a standard `Makefile` (or can be compiled directly via g++).
+
+```bash
+g++ main.cpp regextonfa.cpp converter.cpp approximate.cpp xmlvalidate.cpp -o automata_engine
+
+```
+
+### 4.2. Execution Modes
+
+The Command Line Interface (CLI) offers four primary modes:
+
+1. **Regex to NFA (Exact Matching):**
+* Input a Regex (supports `*`, `|`, `()`, `[]`).
+* Input a test string (or DNA sequence).
+* *Output:* Transition diagram, Regular Grammar, and match indices.
+
+
+2. **Approximate Matching:**
+* Input a Regex and a Sequence.
+* Input tolerance k (max errors).
+* *Output:* Substrings matching the pattern within the specified edit distance.
+
+
+3. **XML Validation (PDA):**
+* Input a multiline XML string.
+* *Output:* Stack trace and validity verdict.
+
+
+4. **RNA Secondary Structure (PDA):**
+* Input an RNA sequence (e.g., `A.CG.U`).
+* *Output:* Verification of valid loop folding based on complementary base pairs.
 
 ---
 
-## 3.3 NFA to Regular Grammar
+## 5. Complexity Analysis
 
-Each NFA state is renamed S0, S1, S2, …
+| Module | Algorithm | Time Complexity | Space Complexity |
+| --- | --- | --- | --- |
+| **Regex Compilation** | Thompson's Construction | $O( | r |
+| **Exact Simulation** | NFA Step w/ Set | $O( | s |
+| **Approximate Matching** | BFS State Expansion | $O( | s |
+| **PDA Validation** | Single Pass Stack | $O( | s |
 
-Transitions become productions:
-
-Example:
-
-```
-S0 -> aS1
-S1 -> bS2
-S2 -> $
-```
+*Where |r| is regex length, |s| is string length, |Q| is number of states, and k is error tolerance.*
 
 ---
 
-# 4. Approximate Matching Module
+## 6. Limitations and Future Work
 
-## 4.1 Purpose
-
-This module demonstrates approximate acceptance over **regular languages**, not strict Levenshtein distance over a single string.
-
-Allowed operations:
-
-- Substitution  
-- Insertion  
-- Deletion  
-
-A BFS processes triples: `(state, position, errorCount)`.
-
-Acceptance occurs when:
-
-```
-position == input_length
-and final_state is reachable
-and errors_used <= k
-```
+1. **DFA Minimization:** While the NFA architecture is robust, the implementation of DFA minimization (Hopcroft’s Algorithm) is currently a planned extension to optimize search speed for large inputs.
+2. **Extended Regex Operators:** Operators such as `+` and `?` are currently handled via expansion or manual implementation; native support could optimize the graph size.
+3. **XML Attributes:** The current PDA validates tag nesting structure but ignores internal tag attributes.
 
 ---
 
-## 4.2 Behavior Note
+## 7. Conclusion
 
-In approximate matching over regular languages, patterns that contain `*` or alternations may accept strings with fewer errors than strict edit distance would indicate.
-
-This is correct for automata-theoretic approximate acceptance.
-
----
-
-# 5. XML Validation (PDA)
-
-XML nesting requires a pushdown automaton.
-
-## PDA Rules
-
-| Input | PDA Action |
-|--------|---------------|
-| `<tag>` | push "tag" |
-| `</tag>` | pop and compare |
-| End of input | accept if stack empty |
-
-Failure conditions:
-
-- Mismatched tags  
-- Extra closing tags  
-- Unclosed tags  
-
-Example valid XML:
-
-```
-<a><b></b></a>
-```
-
-Example invalid XML:
-
-```
-<a><b></a></b>
-```
-
----
-
-# 6. Program Usage
-
-Upon running the program:
-
-```
-=============================
-         MAIN MENU
-=============================
-1. Regex to NFA (Exact Matching)
-2. Approximate Matching
-3. XML Validation using PDA
-4. Exit
-```
-
-## Option 1: Regex -> NFA
-
-- Generates the NFA  
-- Tests exact matching  
-- Prints alphabet  
-- Prints grammar productions  
-
-## Option 2: Approximate Matching
-
-- Tests input against regex with error tolerance `k`
-
-## Option 3: XML Validation
-
-- Reads multi-line XML  
-- Prints stack operations  
-- Reports validity  
-
----
-
-# 7. Sample Inputs and Outputs
-
-## 7.1 Exact Matching Example
-
-Regex:
-```
-A(B|C)*D
-```
-
-Input:
-```
-ABBCD
-```
-
-Output:
-```
-ACCEPTED
-```
-
----
-
-## 7.2 Approximate Matching Example
-
-Regex:
-```
-ATG[ACGT]*TGA
-```
-
-Input:
-```
-ATGACCTTAGA
-```
-
-k:
-```
-2
-```
-
-Output:
-```
-MATCHED WITH APPROXIMATION
-```
-
----
-
-## 7.3 XML Validation Example
-
-Input:
-```
-<root>
-<to>A</to>
-</root>
-```
-
-Output:
-```
-XML structure is VALID.
-```
-
----
-
-# 8. Complexity Analysis
-
-| Module | Time Complexity | Space Complexity |
-|--------|-----------------|------------------|
-| Regex to NFA | O(n) | O(n) |
-| Exact Matching | O(n * |states|) | O(|states|) |
-| Approx Matching | O(n * |states| * k) | O(n * |states| * k) |
-| XML PDA | O(n) | O(n) |
-
----
-
-# 9. Limitations
-
-- Regex does not support `+`, `?`, `{m,n}`, or negated classes.  
-- XML parser handles structure only (no attributes).  
-- Approximate matching is over regular languages, not strict Levenshtein.  
-
----
-
-# 10. Future Extensions
-
-- Add regex features `+`, `?`, `{m,n}`  
-- DFA minimization  
-- NFA visualization  
-- XML attribute parsing  
-- Performance optimization  
-
----
-
-# 11. Conclusion
-
-This project successfully demonstrates:
-
-- The construction and simulation of NFAs from regular expressions  
-- Approximate acceptance over regular languages  
-- Pushdown automaton behavior for XML validation  
-- Clear distinction between regular and context-free languages  
-- Clean and maintainable C++ architecture  
-
-The system is academically aligned with CS311 requirements and presents a unified view of language recognition across multiple automata classes.
-
----
-
-# End of Documentation
+This project successfully implements a comparative automata simulator. It highlights that while Regular Languages (NFAs) are highly efficient for pattern searching and information retrieval in flat sequences (DNA), they fail to capture the hierarchical dependencies found in data structures (XML) and biological folding (RNA). Consequently, the integration of Pushdown Automata is shown to be strictly necessary for these Context-Free domains.
